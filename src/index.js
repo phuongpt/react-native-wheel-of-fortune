@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,11 +9,11 @@ import {
 } from 'react-native';
 import * as d3Shape from 'd3-shape';
 
-import Svg, {G, Text, TSpan, Path, Pattern} from 'react-native-svg';
+import Svg, { G, Text, TSpan, Path, Pattern } from 'react-native-svg';
 
 const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 
-const {width, height} = Dimensions.get('screen');
+const { width, height } = Dimensions.get('screen');
 
 class WheelOfFortune extends Component {
   constructor(props) {
@@ -38,13 +38,11 @@ class WheelOfFortune extends Component {
     this.RewardCount = this.Rewards.length;
 
     this.numberOfSegments = this.RewardCount;
-    this.fontSize = 20;
+    this.fontSize =  this.props.options.textSize || 20;
     this.oneTurn = 360;
     this.angleBySegment = this.oneTurn / this.numberOfSegments;
     this.angleOffset = this.angleBySegment / 2;
-    this.winner = this.props.options.winner
-      ? this.props.options.winner
-      : Math.floor(Math.random() * this.numberOfSegments);
+    this.winner = this.props.options.winner ?? Math.floor(Math.random() * this.numberOfSegments);
 
     this._wheelPaths = this.makeWheel();
     this._angle = new Animated.Value(0);
@@ -94,23 +92,25 @@ class WheelOfFortune extends Component {
   }
 
   makeWheel = () => {
-    const data = Array.from({length: this.numberOfSegments}).fill(1);
+    const data = Array.from({ length: this.numberOfSegments }).fill(1);
     const arcs = d3Shape.pie()(data);
     var colors = this.props.options.colors
       ? this.props.options.colors
       : [
-          '#E07026',
-          '#E8C22E',
-          '#ABC937',
-          '#4F991D',
-          '#22AFD3',
-          '#5858D0',
-          '#7B48C8',
-          '#D843B9',
-          '#E23B80',
-          '#D82B2B',
-        ];
-    return arcs.map((arc, index) => {
+        '#F6611A',
+        '#F69268',
+        '#EEC0AB',
+        '#A56078',
+        '#4199FD',
+        '#82994C',
+        '#F7330E',
+        '#2AAE94',
+        '#9FCAE5',
+        '#F59316',
+        '#CDEAE5',
+        '#F2AC29',
+      ];
+    return arcs.sort(i=>i.index).map((arc, index) => {
       const instance = d3Shape
         .arc()
         .padAngle(0.01)
@@ -145,24 +145,31 @@ class WheelOfFortune extends Component {
       started: true,
     });
     Animated.timing(this._angle, {
-      toValue:
-        365 -
-        this.winner * (this.oneTurn / this.numberOfSegments) +
-        360 * (duration / 1000),
+        toValue: 
+        (360 * Math.floor((duration / 1000))) - (this.winner * (this.oneTurn / this.numberOfSegments)),
       duration: duration,
       useNativeDriver: true,
     }).start(() => {
-      const winnerIndex = this._getWinnerIndex();
+      // const winnerIndex = this._getWinnerIndex();
+      const winnerIndex = this.winner;
       this.setState({
         finished: true,
         winner: this._wheelPaths[winnerIndex].value,
       });
-      this.props.getWinner(this._wheelPaths[winnerIndex].value, winnerIndex);
+      if (this.props.getWinner) {
+        this.props.getWinner(this._wheelPaths[winnerIndex].value, winnerIndex);
+      } else {
+        this.props.options?.getWinner?.(
+          this._wheelPaths[winnerIndex].value,
+          winnerIndex
+        );
+      }
     });
   };
 
-  _textRender = (x, y, number, i) => (
-    <Text
+  _textRender = (x, y, number, i) => {
+    return (
+      <Text
       x={x - number.length * 5}
       y={y - 80}
       fill={
@@ -170,7 +177,7 @@ class WheelOfFortune extends Component {
       }
       textAnchor="middle"
       fontSize={this.fontSize}>
-      {Array.from({length: number.length}).map((_, j) => {
+      {Array.from({ length: number.length }).map((_, j) => {
         // Render reward text vertically
         if (this.props.options.textAngle === 'vertical') {
           return (
@@ -183,7 +190,7 @@ class WheelOfFortune extends Component {
         else {
           return (
             <TSpan
-              y={y - 40}
+              y={y}
               dx={this.fontSize * 0.07}
               key={`arc-${i}-slice-${j}`}>
               {number.charAt(j)}
@@ -192,7 +199,8 @@ class WheelOfFortune extends Component {
         }
       })}
     </Text>
-  );
+    )
+  };
 
   _renderSvgWheel = () => {
     return (
@@ -233,14 +241,13 @@ class WheelOfFortune extends Component {
             height={this.state.gameScreen}
             viewBox={`0 0 ${width} ${width}`}
             style={{
-              transform: [{rotate: `-${this.angleOffset}deg`}],
+              transform: [{ rotate: `-${this.angleOffset}deg` }],
               margin: 10,
             }}>
             <G y={width / 2} x={width / 2}>
               {this._wheelPaths.map((arc, i) => {
                 const [x, y] = arc.centroid;
                 const number = arc.value.toString();
-
                 return (
                   <G key={`arc-${i}`}>
                     <Path d={arc.path} strokeWidth={2} fill={arc.color} />
@@ -307,7 +314,7 @@ class WheelOfFortune extends Component {
           height={(knobSize * 100) / 57}
           viewBox={`0 0 57 100`}
           style={{
-            transform: [{translateY: 8}],
+            transform: [{ translateY: 8 }],
           }}>
           <Image
             source={
@@ -335,7 +342,7 @@ class WheelOfFortune extends Component {
   render() {
     return (
       <View style={styles.container}>
-        <TouchableOpacity
+        <View
           style={{
             position: 'absolute',
             width: width,
@@ -343,10 +350,10 @@ class WheelOfFortune extends Component {
             justifyContent: 'center',
             alignItems: 'center',
           }}>
-          <Animated.View style={[styles.content, {padding: 10}]}>
+          <Animated.View style={[styles.content, { padding: 10 }]}>
             {this._renderSvgWheel()}
           </Animated.View>
-        </TouchableOpacity>
+        </View>
         {this.props.options.playButton ? this._renderTopToPlay() : null}
       </View>
     );
@@ -367,7 +374,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     textShadowColor: 'rgba(0, 0, 0, 0.4)',
-    textShadowOffset: {width: -1, height: 1},
+    textShadowOffset: { width: -1, height: 1 },
     textShadowRadius: 10,
   },
 });
